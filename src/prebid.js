@@ -546,6 +546,20 @@ $$PREBID_GLOBAL$$.registerAnalyticsAdapter = function (options) {
   }
 };
 
+/**
+ * Wrapper to register priceFloorAdapter externally (adaptermanager.registerPriceFloorAdapter())
+ * @param  {[type]} options [description]
+ */
+$$PREBID_GLOBAL$$.registerPriceFloorAdapter = function (options) {
+  utils.logInfo('Invoking $$PREBID_GLOBAL$$.registerPriceFloorAdapter', arguments);
+  try {
+    adaptermanager.registerPriceFloorAdapter(options);
+  }
+  catch (e) {
+    utils.logError('Error registering priceFloor adapter : ' + e.message);
+  }
+};
+
 $$PREBID_GLOBAL$$.bidsAvailableForAdapter = function (bidderCode) {
   utils.logInfo('Invoking $$PREBID_GLOBAL$$.bidsAvailableForAdapter', arguments);
 
