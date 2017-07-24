@@ -3,19 +3,17 @@ import adaptermanager from 'src/adaptermanager';
 import CONSTANTS from 'src/constants.json'
 
 const utils = require('src/utils');
-const url = '//pf.rxthdr.com';
+const url = window['roxot-price-floor-endpoint'] || '//pf.rxthdr.com';
 
 let auctionInitConst = CONSTANTS.EVENTS.AUCTION_INIT;
 let auctionEndConst = CONSTANTS.EVENTS.AUCTION_END;
 let bidRequestedConst = CONSTANTS.EVENTS.BID_REQUESTED;
 let bidResponseConst = CONSTANTS.EVENTS.BID_RESPONSE;
 
-let eventStack = {events: [], priceFloorSettings: {}};
-
-let auctionStatus = 'not_started';
-
 let priceFloorSettings = {};
 let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
+  let eventStack = {events: [], priceFloorSettings: {}};
+
   function _prepareAdUnits(adUnits) {
     adUnits.forEach(function (adUnit) {
       let affectedBidders = {};
@@ -91,7 +89,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         try {
           _updateSettings(JSON.parse(xhr.responseText));
         } catch (error) {
-          console.error(err);
+          console.error(error);
         }
         utils.logInfo('Event ' + eventType + ' sent ' + sendDataType + ' to roxot price floor service with result ' + result);
       };
@@ -118,21 +116,12 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   function _collect(eventType) {
     return function (event) {
       if (eventType === auctionInitConst) {
-        auctionStatus = 'started';
         _flushEvents();
-        return;
-      }
-
-      if (eventType === bidResponseConst) {
-        event.ad = "";
-      }
-
-      if (eventType === auctionEndConst) {
+      }else if (eventType === auctionEndConst) {
         eventStack.priceFloorSettings = priceFloorSettings;
         eventStack.infoString = _extractInfoString();
         _send(eventType, eventStack, 'eventStack');
         _flushEvents();
-        auctionStatus = 'not_started';
       } else {
         _pushEvent(eventType, event);
       }

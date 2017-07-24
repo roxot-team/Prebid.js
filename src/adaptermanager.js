@@ -19,7 +19,7 @@ let _s2sConfig = {
 };
 var _analyticsRegistry = {};
 let _bidderSequence = null;
-var _priceFloorsRegistry = {};
+var _priceFloorRegistry = {};
 
 function getBids({bidderCode, requestId, bidderRequestId, adUnits}) {
   return adUnits.map(adUnit => {
@@ -56,7 +56,7 @@ function getBids({bidderCode, requestId, bidderRequestId, adUnits}) {
 }
 
 exports.callBids = ({adUnits, cbTimeout}) => {
-  _priceFloorsRegistry['roxot']().prepareAdUnits(adUnits);
+  _priceFloorRegistry['roxot']().prepareAdUnits(adUnits);
   const requestId = utils.generateUUID();
   const auctionStart = Date.now();
 
@@ -233,7 +233,7 @@ exports.registerAnalyticsAdapter = function ({adapter, code}) {
 
 exports.registerPriceFloorAdapter = function ({adapter, title}) {
   if (adapter && title) {
-    _priceFloorsRegistry[title] = adapter;
+    _priceFloorRegistry[title] = adapter;
     adapter().init();
   } else {
     utils.logError('Prebid Error: priceFloorAdapter or adapter title not specified');

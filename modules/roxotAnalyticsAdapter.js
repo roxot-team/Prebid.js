@@ -5,7 +5,7 @@ import adaptermanager from 'src/adaptermanager';
 
 const utils = require('src/utils');
 
-const url = '//pa.rxthdr.com/analytic';
+const url = window['roxot-analytics-endpoint'] || '//pa.rxthdr.com/analytic';
 const analyticsType = 'endpoint';
 
 let auctionInitConst = CONSTANTS.EVENTS.AUCTION_INIT;
