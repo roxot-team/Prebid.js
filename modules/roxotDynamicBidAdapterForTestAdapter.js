@@ -6,9 +6,9 @@ var bidmanager = require('src/bidmanager.js');
 var adloader = require('src/adloader');
 var adaptermanager = require('src/adaptermanager');
 
-var DynamicRoxotAdapterForTestAdapter = function DynamicRoxotAdapterForTestAdapter(bidderCode, url) {
+var roxotDynamicBidAdapterForTestAdapter = function roxotDynamicBidAdapterForTestAdapter(bidderCode, url) {
   let handlerName = 'dynamic_roxot_' + bidderCode + '_responseHandler';
-  $$PREBID_GLOBAL$$[handlerName] = dynamicRoxotResponseHandler;
+  $$PREBID_GLOBAL$$[handlerName] = roxotDynamicBidResponseHandler;
 
   return {
     callBids: _callBids
@@ -36,22 +36,22 @@ var DynamicRoxotAdapterForTestAdapter = function DynamicRoxotAdapterForTestAdapt
     adloader.loadScript(scriptUrl);
   }
 
-  function dynamicRoxotResponseHandler(dynamicRoxotResponseObject) {
-    utils.logInfo('dynamicRoxotResponseHandler invoking');
+  function roxotDynamicBidResponseHandler(roxotDynamicResponseObject) {
+    utils.logInfo('roxotDynamicBidResponseHandler invoking');
     var placements = [];
 
     if (isResponseInvalid()) {
       return fillPlacementEmptyBid();
     }
 
-    dynamicRoxotResponseObject.bids.forEach(pushCustomRoxotBid);
+    roxotDynamicResponseObject.bids.forEach(pushCustomRoxotBid);
     var allBidResponse = fillPlacementEmptyBid(placements);
     utils.logInfo('roxotResponse handler finish');
 
     return allBidResponse;
 
     function isResponseInvalid() {
-      return !dynamicRoxotResponseObject || !dynamicRoxotResponseObject.bids || !Array.isArray(dynamicRoxotResponseObject.bids) || dynamicRoxotResponseObject.bids.length <= 0;
+      return !roxotDynamicResponseObject || !roxotDynamicResponseObject.bids || !Array.isArray(roxotDynamicResponseObject.bids) || roxotDynamicResponseObject.bids.length <= 0;
     }
 
     function pushCustomRoxotBid(roxotBid) {
@@ -119,9 +119,9 @@ for(var bidderIndex in roxotBidderConfigBidders){
   }
 
   var roxotBidderConfig = roxotBidderConfigBidders[bidderIndex];
-  adaptermanager.registerBidAdapter(new DynamicRoxotAdapterForTestAdapter(roxotBidderConfig.name,roxotBidderConfig.url), roxotBidderConfig.name);
+  adaptermanager.registerBidAdapter(new roxotDynamicBidAdapterForTestAdapter(roxotBidderConfig.name,roxotBidderConfig.url), roxotBidderConfig.name);
 }
 
-module.exports = DynamicRoxotAdapterForTestAdapter;
+module.exports = roxotDynamicBidAdapterForTestAdapter;
 
 
