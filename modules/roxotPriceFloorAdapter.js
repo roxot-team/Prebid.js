@@ -30,6 +30,8 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         }
         bid.params[priceFloorKey] = bidderConfig.value;
         affectedBidders[bidder] = 1;
+        priceFloorSettings[adUnit.code] = priceFloorSettings[adUnit.code] || {};
+        priceFloorSettings[adUnit.code][bidder] = bidderConfig.value;
       });
       for(let bidder in affectedBidders) {
         let ttl = config[bidder].ttl;
@@ -117,7 +119,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
     return function (event) {
       if (eventType === auctionInitConst) {
         _flushEvents();
-      }else if (eventType === auctionEndConst) {
+      } else if (eventType === auctionEndConst) {
         eventStack.priceFloorSettings = priceFloorSettings;
         eventStack.infoString = _extractInfoString();
         _send(eventType, eventStack, 'eventStack');

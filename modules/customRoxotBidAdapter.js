@@ -1,0 +1,127 @@
+"use strict";
+var CONSTANTS = require('src/constants.json');
+var utils = require('src/utils.js');
+var bidfactory = require('src/bidfactory.js');
+var bidmanager = require('src/bidmanager.js');
+var adloader = require('src/adloader');
+var adaptermanager = require('src/adaptermanager');
+
+var DynamicRoxotAdapterForTestAdapter = function DynamicRoxotAdapterForTestAdapter(bidderCode, url) {
+  let handlerName = 'dynamic_roxot_' + bidderCode + '_responseHandler';
+  $$PREBID_GLOBAL$$[handlerName] = dynamicRoxotResponseHandler;
+
+  return {
+    callBids: _callBids
+  };
+
+  function _callBids(bidReqs) {
+    utils.logInfo('callBids roxot adapter invoking');
+
+    var domain = window.location.host;
+    var page = window.location.pathname + location.search + location.hash;
+
+    var roxotBidReqs = {
+      id: utils.getUniqueIdentifierStr(),
+      bids: bidReqs,
+      site: {
+        domain: domain,
+        page: page
+      }
+    };
+
+    var scriptUrl = '//' + url + 'callback=pbjs.' + handlerName +
+      '&src=' + CONSTANTS.REPO_AND_VERSION +
+      '&br=' + encodeURIComponent(JSON.stringify(roxotBidReqs));
+
+    adloader.loadScript(scriptUrl);
+  }
+
+  function dynamicRoxotResponseHandler(dynamicRoxotResponseObject) {
+    utils.logInfo('dynamicRoxotResponseHandler invoking');
+    var placements = [];
+
+    if (isResponseInvalid()) {
+      return fillPlacementEmptyBid();
+    }
+
+    dynamicRoxotResponseObject.bids.forEach(pushCustomRoxotBid);
+    var allBidResponse = fillPlacementEmptyBid(placements);
+    utils.logInfo('roxotResponse handler finish');
+
+    return allBidResponse;
+
+    function isResponseInvalid() {
+      return !dynamicRoxotResponseObject || !dynamicRoxotResponseObject.bids || !Array.isArray(dynamicRoxotResponseObject.bids) || dynamicRoxotResponseObject.bids.length <= 0;
+    }
+
+    function pushCustomRoxotBid(roxotBid) {
+      var placementCode = '';
+
+      var bidReq = $$PREBID_GLOBAL$$
+        ._bidsRequested.find(bidSet => bidSet.bidderCode === bidderCode)
+        .bids.find(bid => bid.bidId === roxotBid.bidId);
+
+      if (!bidReq) {
+        return pushErrorBid(placementCode);
+      }
+
+      bidReq.status = CONSTANTS.STATUS.GOOD;
+
+      placementCode = bidReq.placementCode;
+      placements.push(placementCode);
+
+      var cpm = roxotBid.cpm;
+      var responseNurl = '<img src="' + roxotBid.nurl + '">';
+
+      if (!cpm) {
+        return pushErrorBid(placementCode);
+      }
+
+      var bid = bidfactory.createBid(1, bidReq);
+
+      bid.creative_id = roxotBid.id;
+      bid.bidderCode = bidderCode;
+      bid.cpm = cpm;
+      bid.ad = decodeURIComponent(roxotBid.adm + responseNurl);
+      bid.width = parseInt(roxotBid.w);
+      bid.height = parseInt(roxotBid.h);
+
+      bidmanager.addBidResponse(placementCode, bid);
+    }
+
+    function fillPlacementEmptyBid(places) {
+      $$PREBID_GLOBAL$$
+        ._bidsRequested.find(bidSet => bidSet.bidderCode === bidderCode)
+        .bids.forEach(fillIfNotFilled);
+
+      function fillIfNotFilled(bid) {
+        if (utils.contains(places, bid.placementCode)) {
+          return null;
+        }
+
+        pushErrorBid(bid);
+      }
+    }
+
+    function pushErrorBid(bidRequest) {
+      var bid = bidfactory.createBid(2, bidRequest);
+      bid.bidderCode = bidderCode;
+      bidmanager.addBidResponse(bidRequest.placementCode, bid);
+    }
+  }
+};
+
+var roxotBidderConfigBidders = window.roxotBidderConfig.bidders;
+
+for(var bidderIndex in roxotBidderConfigBidders){
+  if(!roxotBidderConfigBidders.hasOwnProperty(bidderIndex)){
+    continue;
+  }
+
+  var roxotBidderConfig = roxotBidderConfigBidders[bidderIndex];
+  adaptermanager.registerBidAdapter(new DynamicRoxotAdapterForTestAdapter(roxotBidderConfig.name,roxotBidderConfig.url), roxotBidderConfig.name);
+}
+
+module.exports = DynamicRoxotAdapterForTestAdapter;
+
+
