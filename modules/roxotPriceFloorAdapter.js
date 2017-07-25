@@ -125,9 +125,48 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         _send(eventType, eventStack, 'eventStack');
         _flushEvents();
       } else {
-        _pushEvent(eventType, event);
+        let preparedEvent = _prepareEvent(eventType, event);
+        _pushEvent(eventType, preparedEvent);
       }
     }
+  }
+
+  function _prepareEvent(eventType, event) {
+    if(eventType === BID_REQUEST_EVENT_TYPE) {
+      let copyEvent = utils.cloneJson(event);
+      delete copyEvent.bidderRequestId;
+      delete copyEvent.auctionStart;
+      delete copyEvent.start;
+      delete copyEvent.timeout;
+      copyEvent.bids.forEach(bid => {
+        delete bid.bidId;
+        delete bid.bidder;
+        delete bid.bidderRequestId;
+        delete bid.requestId;
+        delete bid.transactionId;
+      });
+      return copyEvent;
+    }
+
+    if(eventType === BID_RESPONSE_EVENT_TYPE) {
+      let copyEvent = utils.cloneJson(event);
+      delete copyEvent.ad;
+      delete copyEvent.adId;
+      delete copyEvent.adserverTargeting;
+      delete copyEvent.bidder;
+      delete copyEvent.pbAg;
+      delete copyEvent.pbCg;
+      delete copyEvent.pbDg;
+      delete copyEvent.pbHg;
+      delete copyEvent.pbLg;
+      delete copyEvent.pbMg;
+      delete copyEvent.requestTimestamp;
+      delete copyEvent.responseTimestamp;
+      delete copyEvent.statusMessage;
+      return copyEvent;
+    }
+
+    return event;
   }
 
   function _pushEvent(eventType, args) {
