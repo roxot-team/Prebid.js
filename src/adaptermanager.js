@@ -56,7 +56,10 @@ function getBids({bidderCode, requestId, bidderRequestId, adUnits}) {
 }
 
 exports.callBids = ({adUnits, cbTimeout}) => {
-  _priceFloorRegistry['roxot']().prepareAdUnits(adUnits);
+  Object.keys(_priceFloorRegistry).forEach(function (bidderCode) {
+    let priceFloorAdapter = _priceFloorRegistry[bidderCode];
+    priceFloorAdapter().prepareAdUnits(adUnits);
+  });
   const requestId = utils.generateUUID();
   const auctionStart = Date.now();
 

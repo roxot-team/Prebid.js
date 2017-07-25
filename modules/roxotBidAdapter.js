@@ -6,7 +6,6 @@ var adloader = require('src/adloader');
 var adaptermanager = require('src/adaptermanager');
 
 var RoxotAdapter = function RoxotAdapter() {
-
   var roxotUrl = window['roxot-bid-endpoint'] || 'r.rxthdr.com';
 
   $$PREBID_GLOBAL$$.roxotResponseHandler = roxotResponseHandler;

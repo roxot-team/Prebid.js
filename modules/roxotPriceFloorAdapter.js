@@ -5,10 +5,10 @@ import CONSTANTS from 'src/constants.json'
 const utils = require('src/utils');
 const url = window['roxot-price-floor-endpoint'] || '//pf.rxthdr.com';
 
-let auctionInitConst = CONSTANTS.EVENTS.AUCTION_INIT;
-let auctionEndConst = CONSTANTS.EVENTS.AUCTION_END;
-let bidRequestedConst = CONSTANTS.EVENTS.BID_REQUESTED;
-let bidResponseConst = CONSTANTS.EVENTS.BID_RESPONSE;
+let AUCTION_INIT_EVENT_TYPE = CONSTANTS.EVENTS.AUCTION_INIT;
+let AUCTION_END_EVENT_TYPE = CONSTANTS.EVENTS.AUCTION_END;
+let BID_REQUEST_EVENT_TYPE = CONSTANTS.EVENTS.BID_REQUESTED;
+let BID_RESPONSE_EVENT_TYPE = CONSTANTS.EVENTS.BID_RESPONSE;
 
 let priceFloorSettings = {};
 let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
@@ -33,7 +33,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         priceFloorSettings[adUnit.code] = priceFloorSettings[adUnit.code] || {};
         priceFloorSettings[adUnit.code][bidder] = bidderConfig.value;
       });
-      for(let bidder in affectedBidders) {
+      for (let bidder in affectedBidders) {
         let ttl = config[bidder].ttl;
         ttl--;
         if (ttl <= 0) {
@@ -42,7 +42,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
           config[bidder].ttl = ttl;
         }
       }
-      if (Object.keys(config).length === 0){
+      if (Object.keys(config).length === 0) {
         _removePriceFloorConfig(adUnit.code);
       } else {
         _updatePriceFloorConfig(adUnit.code, config);
@@ -51,10 +51,10 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   }
 
   function _init() {
-    events.on(auctionInitConst, _collect(auctionInitConst));
-    events.on(bidRequestedConst, _collect(bidRequestedConst));
-    events.on(bidResponseConst, _collect(bidResponseConst));
-    events.on(auctionEndConst, _collect(auctionEndConst));
+    events.on(AUCTION_INIT_EVENT_TYPE, _collect(AUCTION_INIT_EVENT_TYPE));
+    events.on(BID_REQUEST_EVENT_TYPE, _collect(BID_REQUEST_EVENT_TYPE));
+    events.on(BID_RESPONSE_EVENT_TYPE, _collect(BID_RESPONSE_EVENT_TYPE));
+    events.on(AUCTION_END_EVENT_TYPE, _collect(AUCTION_END_EVENT_TYPE));
   }
 
   function _getPriceFloorConfig(adUnitCode) {
@@ -77,37 +77,37 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
     localStorage.removeItem(configName);
   }
 
-  function _buildConfigName(name){
+  function _buildConfigName(name) {
     return 'roxot_pf_' + name;
   }
 
   function _send(eventType, data, sendDataType) {
-      let xhr = new XMLHttpRequest();
-      xhr.open('POST', url, true);
-      xhr.setRequestHeader('Content-Type', 'text/plain');
-      xhr.withCredentials = true;
-      xhr.onreadystatechange = function (result) {
-        if (this.readyState != 4) return;
-        try {
-          _updateSettings(JSON.parse(xhr.responseText));
-        } catch (error) {
-          console.error(error);
-        }
-        utils.logInfo('Event ' + eventType + ' sent ' + sendDataType + ' to roxot price floor service with result ' + result);
-      };
-      xhr.send(JSON.stringify(data));
+    let xhr = new XMLHttpRequest();
+    xhr.open('POST', url, true);
+    xhr.setRequestHeader('Content-Type', 'text/plain');
+    xhr.withCredentials = true;
+    xhr.onreadystatechange = function (result) {
+      if (this.readyState != 4) return;
+      try {
+        _updateSettings(JSON.parse(xhr.responseText));
+      } catch (error) {
+        console.error(error);
+      }
+      utils.logInfo('Event ' + eventType + ' sent ' + sendDataType + ' to roxot price floor service with result ' + result);
+    };
+    xhr.send(JSON.stringify(data));
   }
 
   function _updateSettings(body) {
-    if('infoString' in body) {
+    if ('infoString' in body) {
       localStorage.setItem(_buildConfigName('info-string'), body.infoString);
     }
 
-    if('config' in body) {
-      for(let adUnitCode in body.config) {
+    if ('config' in body) {
+      for (let adUnitCode in body.config) {
         let config = _getPriceFloorConfig(adUnitCode);
         let biddersConfig = body.config[adUnitCode];
-        for(let bidder in biddersConfig) {
+        for (let bidder in biddersConfig) {
           config[bidder] = biddersConfig[bidder];
         }
         _updatePriceFloorConfig(adUnitCode, config);
@@ -117,9 +117,9 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
 
   function _collect(eventType) {
     return function (event) {
-      if (eventType === auctionInitConst) {
+      if (eventType === AUCTION_INIT_EVENT_TYPE) {
         _flushEvents();
-      } else if (eventType === auctionEndConst) {
+      } else if (eventType === AUCTION_END_EVENT_TYPE) {
         eventStack.priceFloorSettings = priceFloorSettings;
         eventStack.infoString = _extractInfoString();
         _send(eventType, eventStack, 'eventStack');
@@ -140,14 +140,13 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
 
   function _extractInfoString() {
     let configName = _buildConfigName('info-string');
-    return localStorage.getItem(configName) || "";
+    return localStorage.getItem(configName) || '';
   }
 
   return {
     prepareAdUnits: _prepareAdUnits,
     init: _init
   };
-
 };
 
 adaptermanager.registerPriceFloorAdapter({

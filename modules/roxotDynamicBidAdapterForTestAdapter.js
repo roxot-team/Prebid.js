@@ -1,4 +1,4 @@
-"use strict";
+'use strict';
 var CONSTANTS = require('src/constants.json');
 var utils = require('src/utils.js');
 var bidfactory = require('src/bidfactory.js');
@@ -113,13 +113,13 @@ var roxotDynamicBidAdapterForTestAdapter = function roxotDynamicBidAdapterForTes
 
 var roxotBidderConfigBidders = window.roxotBidderConfig.bidders;
 
-for(var bidderIndex in roxotBidderConfigBidders){
-  if(!roxotBidderConfigBidders.hasOwnProperty(bidderIndex)){
+for (var bidderIndex in roxotBidderConfigBidders) {
+  if (!roxotBidderConfigBidders.hasOwnProperty(bidderIndex)) {
     continue;
   }
 
   var roxotBidderConfig = roxotBidderConfigBidders[bidderIndex];
-  adaptermanager.registerBidAdapter(new roxotDynamicBidAdapterForTestAdapter(roxotBidderConfig.name,roxotBidderConfig.url), roxotBidderConfig.name);
+  adaptermanager.registerBidAdapter(new roxotDynamicBidAdapterForTestAdapter(roxotBidderConfig.name, roxotBidderConfig.url), roxotBidderConfig.name);
 }
 
 module.exports = roxotDynamicBidAdapterForTestAdapter;
