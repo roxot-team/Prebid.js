@@ -55,26 +55,21 @@ var roxotDynamicBidAdapterForTestAdapter = function roxotDynamicBidAdapterForTes
     }
 
     function pushCustomRoxotBid(roxotBid) {
-      var placementCode = '';
-
       var bidReq = $$PREBID_GLOBAL$$
         ._bidsRequested.find(bidSet => bidSet.bidderCode === bidderCode)
         .bids.find(bid => bid.bidId === roxotBid.bidId);
 
       if (!bidReq) {
-        return pushErrorBid(placementCode);
+        utils.logWarn('Can not find response for one of requests.');
+        return;
       }
 
       bidReq.status = CONSTANTS.STATUS.GOOD;
 
-      placementCode = bidReq.placementCode;
-      placements.push(placementCode);
-
       var cpm = roxotBid.cpm;
-      var responseNurl = '<img src="' + roxotBid.nurl + '">';
 
       if (!cpm) {
-        return pushErrorBid(placementCode);
+        return pushErrorBid(bidReq);
       }
 
       var bid = bidfactory.createBid(1, bidReq);
@@ -82,11 +77,12 @@ var roxotDynamicBidAdapterForTestAdapter = function roxotDynamicBidAdapterForTes
       bid.creative_id = roxotBid.id;
       bid.bidderCode = bidderCode;
       bid.cpm = cpm;
+      var responseNurl = '<img src="' + roxotBid.nurl + '">';
       bid.ad = decodeURIComponent(roxotBid.adm + responseNurl);
       bid.width = parseInt(roxotBid.w);
       bid.height = parseInt(roxotBid.h);
 
-      bidmanager.addBidResponse(placementCode, bid);
+      bidmanager.addBidResponse(bidReq.placementCode, bid);
     }
 
     function fillPlacementEmptyBid(places) {
@@ -123,5 +119,3 @@ for (var bidderIndex in roxotBidderConfigBidders) {
 }
 
 module.exports = roxotDynamicBidAdapterForTestAdapter;
-
-
