@@ -55,6 +55,7 @@ var roxotDynamicBidAdapterForTestAdapter = function roxotDynamicBidAdapterForTes
     }
 
     function pushCustomRoxotBid(roxotBid) {
+      var placementCode = '';
       var bidReq = $$PREBID_GLOBAL$$
         ._bidsRequested.find(bidSet => bidSet.bidderCode === bidderCode)
         .bids.find(bid => bid.bidId === roxotBid.bidId);
@@ -66,6 +67,8 @@ var roxotDynamicBidAdapterForTestAdapter = function roxotDynamicBidAdapterForTes
 
       bidReq.status = CONSTANTS.STATUS.GOOD;
 
+      placementCode = bidReq.placementCode;
+      placements.push(placementCode);
       var cpm = roxotBid.cpm;
 
       if (!cpm) {
