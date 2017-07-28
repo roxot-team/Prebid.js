@@ -29,7 +29,7 @@ var roxotDynamicBidAdapterForTestAdapter = function roxotDynamicBidAdapterForTes
       }
     };
 
-    var scriptUrl = '//' + url + 'callback=pbjs.' + handlerName +
+    var scriptUrl = url + 'callback=pbjs.' + handlerName +
       '&src=' + CONSTANTS.REPO_AND_VERSION +
       '&br=' + encodeURIComponent(JSON.stringify(roxotBidReqs));
 
