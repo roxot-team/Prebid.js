@@ -152,6 +152,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   function _prepareEvent(eventType, event) {
     if (eventType === BID_REQUEST_PREBID_EVENT_TYPE) {
       let roxotEvent = utils.cloneJson(event);
+      roxotEvent.eventType = REQUEST_ROXOT_EVENT_TYPE;
       delete roxotEvent.bidderRequestId;
       delete roxotEvent.auctionStart;
       delete roxotEvent.start;
@@ -171,6 +172,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
 
     if (eventType === BID_RESPONSE_PREBID_EVENT_TYPE) {
       let roxotEvent = utils.cloneJson(event);
+      roxotEvent.eventType = RESPONSE_ROXOT_EVENT_TYPE;
       bidResponses[event.requestId] = bidResponses[event.requestId] || {};
       bidResponses[event.requestId][event.adUnitCode] = bidResponses[event.requestId][event.adUnitCode] || [];
       bidResponses[event.requestId][event.adUnitCode][event.bidderCode] = event.cpm;
