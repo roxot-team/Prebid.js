@@ -11,13 +11,14 @@ let BID_REQUEST_PREBID_EVENT_TYPE = CONSTANTS.EVENTS.BID_REQUESTED;
 let BID_RESPONSE_PREBID_EVENT_TYPE = CONSTANTS.EVENTS.BID_RESPONSE;
 let BID_WON_PREBID_EVENT_TYPE = CONSTANTS.EVENTS.BID_WON;
 
-let REQUEST_ROXOT_EVENT_TYPE = 'request';
-let RESPONSE_ROXOT_EVENT_TYPE = 'response';
+let AUCTION_ROXOT_EVENT_TYPE = 'auction';
 let IMPRESSION_ROXOT_EVENT_TYPE = 'impression';
 
 let priceFloorSettings = {};
 let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   let eventStack = {events: [], priceFloorSettings: {}};
+  let bidRequests = {};
+  let bidResponses = {};
 
   function _prepareAdUnits(adUnits) {
     adUnits.forEach(function (adUnit) {
@@ -128,13 +129,16 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
       } else if (eventType === AUCTION_END_PREBID_EVENT_TYPE) {
         eventStack.priceFloorSettings = priceFloorSettings;
         eventStack.infoString = _extractInfoString();
+        eventStack.events = _solveAuctionEvents(bidRequests, bidResponses);
+        eventStack.eventStackType = AUCTION_ROXOT_EVENT_TYPE;
         _send(eventType, eventStack, 'eventStack');
         _flushEvents();
       } else if (eventType === BID_WON_PREBID_EVENT_TYPE) {
         let preparedEvent = _prepareEvent(eventType, event);
-        let impressionStack = {events: [preparedEvent]};
+        let impressionStack = {event: [preparedEvent]};
         impressionStack.priceFloorSettings = priceFloorSettings;
         impressionStack.infoString = _extractInfoString();
+        impressionStack.eventStackType = IMPRESSION_ROXOT_EVENT_TYPE;
         _send(BID_WON_PREBID_EVENT_TYPE, impressionStack, 'Impression');
       } else if (eventType === BID_REQUEST_PREBID_EVENT_TYPE) {
         let preparedEvent = _prepareEvent(eventType, event);
@@ -144,57 +148,52 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         let preparedEvent = _prepareEvent(eventType, event);
         _pushEvent(RESPONSE_ROXOT_EVENT_TYPE, preparedEvent);
       }
-    }
+    };
   }
-  var bidRequests = {};
-  var bidResponses = {};
+
+  function _solveAuctionEvents(bidRequests, bidResponses) {
+    let auctions = [];
+    for (let requestId in bidRequests) {
+      for (let adUnitCode in bidRequests[requestId]) {
+        let auction = {};
+        let auctionBidders = bidRequests[requestId][adUnitCode];
+        auction.adUnitCode = adUnitCode;
+        auction.requestId = requestId;
+        auction.bidders = {};
+        for (let bidderIndex in auctionBidders) {
+          let bidderCode = auctionBidders[bidderIndex];
+          auction.bidders[bidderCode] = bidResponses[requestId][adUnitCode][bidderCode];
+        }
+        auctions.push(auction);
+      }
+    }
+    return auctions;
+  }
 
   function _prepareEvent(eventType, event) {
     if (eventType === BID_REQUEST_PREBID_EVENT_TYPE) {
-      let roxotEvent = utils.cloneJson(event);
-      roxotEvent.eventType = REQUEST_ROXOT_EVENT_TYPE;
-      delete roxotEvent.bidderRequestId;
-      delete roxotEvent.auctionStart;
-      delete roxotEvent.start;
-      delete roxotEvent.timeout;
-      roxotEvent.bids.forEach(bid => {
+      event.bids.forEach(bid => {
         bidRequests[bid.requestId] = bidRequests[bid.requestId] || {};
         bidRequests[bid.requestId][bid.placementCode] = bidRequests[bid.requestId][bid.placementCode] || [];
         bidRequests[bid.requestId][bid.placementCode].push(event.bidderCode);
-        delete bid.bidId;
-        delete bid.bidder;
-        delete bid.bidderRequestId;
-        delete bid.requestId;
-        delete bid.transactionId;
       });
-      return roxotEvent;
     }
 
     if (eventType === BID_RESPONSE_PREBID_EVENT_TYPE) {
-      let roxotEvent = utils.cloneJson(event);
-      roxotEvent.eventType = RESPONSE_ROXOT_EVENT_TYPE;
       bidResponses[event.requestId] = bidResponses[event.requestId] || {};
       bidResponses[event.requestId][event.adUnitCode] = bidResponses[event.requestId][event.adUnitCode] || [];
-      bidResponses[event.requestId][event.adUnitCode][event.bidderCode] = event.cpm;
-      delete roxotEvent.ad;
-      delete roxotEvent.adId;
-      delete roxotEvent.adserverTargeting;
-      delete roxotEvent.bidder;
-      delete roxotEvent.pbAg;
-      delete roxotEvent.pbCg;
-      delete roxotEvent.pbDg;
-      delete roxotEvent.pbHg;
-      delete roxotEvent.pbLg;
-      delete roxotEvent.pbMg;
-      delete roxotEvent.requestTimestamp;
-      delete roxotEvent.responseTimestamp;
-      delete roxotEvent.statusMessage;
-      return roxotEvent;
+      if (bidResponses[event.requestId][event.adUnitCode][event.bidderCode]) {
+        let existingResponseCpm = bidResponses[event.requestId][event.adUnitCode][event.bidderCode].cpm;
+        if (event.cpm > existingResponseCpm) {
+          bidResponses[event.requestId][event.adUnitCode][event.bidderCode] = {cpm: event.cpm, size: {width: event.width, height: event.height}};
+        }
+      } else {
+        bidResponses[event.requestId][event.adUnitCode][event.bidderCode] = {cpm: event.cpm, size: {width: event.width, height: event.height}};
+      }
     }
 
     if (eventType === BID_WON_PREBID_EVENT_TYPE) {
       let roxotEvent = {
-        eventType: IMPRESSION_ROXOT_EVENT_TYPE,
         args: {}
       };
       roxotEvent.args.requestId = event.requestId;
