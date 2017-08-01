@@ -165,7 +165,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         let auctionBidders = bidRequests[requestId][adUnitCode];
         auction.adUnitCode = adUnitCode;
         auction.requestId = requestId;
-        auction.bidders = {};
+        auction.auctionInfo = {};
         for (let bidderIndex in auctionBidders) {
           let bidderCode = auctionBidders[bidderIndex];
           auction.bidders[bidderCode] = bidResponses[requestId][adUnitCode][bidderCode];
