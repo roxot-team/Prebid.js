@@ -15,8 +15,8 @@ let AUCTION_ROXOT_EVENT_TYPE = 'auction';
 let IMPRESSION_ROXOT_EVENT_TYPE = 'impression';
 
 let priceFloorSettings = {};
+let previousPriceFloorSettings = {};
 let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
-  let eventStack = {events: [], priceFloorSettings: {}};
   let bidRequests = {};
   let bidResponses = {};
 
@@ -24,8 +24,12 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
     adUnits.forEach(function (adUnit) {
       let affectedBidders = {};
       let config = _getPriceFloorConfig(adUnit.code);
+      let previousAdUnitPriceFloorSettings = previousPriceFloorSettings[adUnit.code] || {};
       adUnit.bids.forEach(function (bid) {
         let bidder = bid.bidder;
+        if (typeof previousAdUnitPriceFloorSettings[bidder] !== 'undefined') {
+          delete bid.params[previousAdUnitPriceFloorSettings[bidder]];
+        }
         if (!(bidder in config)) {
           return;
         }
@@ -35,6 +39,8 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
           return;
         }
         bid.params[priceFloorKey] = bidderConfig.value;
+        previousPriceFloorSettings[adUnit.code] = previousPriceFloorSettings[adUnit.code] || {};
+        previousPriceFloorSettings[adUnit.code][bidder] = priceFloorKey;
         affectedBidders[bidder] = 1;
         priceFloorSettings[adUnit.code] = priceFloorSettings[adUnit.code] || {};
         priceFloorSettings[adUnit.code][bidder] = bidderConfig.value;
@@ -127,26 +133,26 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
       if (eventType === AUCTION_INIT_PREBID_EVENT_TYPE) {
         _flushEvents();
       } else if (eventType === AUCTION_END_PREBID_EVENT_TYPE) {
-        eventStack.priceFloorSettings = priceFloorSettings;
-        eventStack.infoString = _extractInfoString();
-        eventStack.events = _solveAuctionEvents(bidRequests, bidResponses);
-        eventStack.eventStackType = AUCTION_ROXOT_EVENT_TYPE;
-        _send(eventType, eventStack, 'eventStack');
-        _flushEvents();
+        let eventStack = {
+          priceFloorSettings: priceFloorSettings,
+          infoString: _extractInfoString(),
+          events: _solveAuctionEvents(bidRequests, bidResponses),
+          eventStackType: AUCTION_ROXOT_EVENT_TYPE
+        };
+        _send(AUCTION_ROXOT_EVENT_TYPE, eventStack, AUCTION_ROXOT_EVENT_TYPE);
       } else if (eventType === BID_WON_PREBID_EVENT_TYPE) {
-        let preparedEvent = _prepareEvent(eventType, event);
-        let impressionStack = {event: [preparedEvent]};
-        impressionStack.priceFloorSettings = priceFloorSettings;
-        impressionStack.infoString = _extractInfoString();
-        impressionStack.eventStackType = IMPRESSION_ROXOT_EVENT_TYPE;
-        _send(BID_WON_PREBID_EVENT_TYPE, impressionStack, 'Impression');
+        let impressionStack = {
+          event: _prepareEvent(eventType, event),
+          priceFloorSettings: priceFloorSettings,
+          infoString: _extractInfoString(),
+          eventStackType: IMPRESSION_ROXOT_EVENT_TYPE
+        };
+        _send(IMPRESSION_ROXOT_EVENT_TYPE, impressionStack, IMPRESSION_ROXOT_EVENT_TYPE);
       } else if (eventType === BID_REQUEST_PREBID_EVENT_TYPE) {
-        let preparedEvent = _prepareEvent(eventType, event);
-        _pushEvent(REQUEST_ROXOT_EVENT_TYPE, preparedEvent);
+        _prepareEvent(eventType, event);
       }
       else if (eventType === BID_RESPONSE_PREBID_EVENT_TYPE) {
-        let preparedEvent = _prepareEvent(eventType, event);
-        _pushEvent(RESPONSE_ROXOT_EVENT_TYPE, preparedEvent);
+        _prepareEvent(eventType, event);
       }
     };
   }
@@ -194,17 +200,16 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
 
     if (eventType === BID_WON_PREBID_EVENT_TYPE) {
       let roxotEvent = {
-        args: {}
+        requestId: event.requestId,
+        bidderCode: event.bidder,
+        cpm: event.cpm,
+        adUnitCode: event.adUnitCode,
+        auctionInfo: {}
       };
-      roxotEvent.args.requestId = event.requestId;
-      roxotEvent.args.bidderCode = event.bidder;
-      roxotEvent.args.cpm = event.cpm;
-      roxotEvent.args.adUnitCode = event.adUnitCode;
-      roxotEvent.args.auctionInfo = {};
-      let requestedBidders = bidRequests[event.requestId][event.adUnitCode];
-      let auctionResult = bidResponses[event.requestId][event.adUnitCode];
+      let requestedBidders = bidRequests[event.requestId][event.adUnitCode] || {};
+      let auctionResult = bidResponses[event.requestId][event.adUnitCode] || {};
       for (let i in requestedBidders) {
-        roxotEvent.args.auctionInfo[requestedBidders[i]] = auctionResult[requestedBidders[i]] || -1;
+        roxotEvent.auctionInfo[requestedBidders[i]] = auctionResult[requestedBidders[i]] || -1;
       }
       return roxotEvent;
     }
@@ -212,12 +217,9 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
     return event;
   }
 
-  function _pushEvent(eventType, args) {
-    eventStack.events.push({eventType, args});
-  }
-
   function _flushEvents() {
-    eventStack.events = [];
+    bidResponses = {};
+    bidRequests = {};
   }
 
   function _extractInfoString() {
