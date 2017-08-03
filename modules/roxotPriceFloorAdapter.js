@@ -192,7 +192,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
     let requestedBidders = bidRequests[requestId][adUnitCode] || {};
     let auctionResult = bidResponses[requestId][adUnitCode] || {};
     for (let i in requestedBidders) {
-      impression.auctionInfo[requestedBidders[i]] = auctionResult[requestedBidders[i]] || -1;
+      impression.auctionInfo[requestedBidders[i]] = auctionResult[requestedBidders[i]] || {cpm: -1, size: {width: 0, height: 0}};
     }
     return impression;
   }

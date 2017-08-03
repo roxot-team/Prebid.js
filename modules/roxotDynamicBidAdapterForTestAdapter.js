@@ -6,7 +6,7 @@ var bidmanager = require('src/bidmanager.js');
 var adloader = require('src/adloader');
 var adaptermanager = require('src/adaptermanager');
 
-var roxotDynamicBidAdapterForTestAdapter = function roxotDynamicBidAdapterForTestAdapter(bidderCode, url) {
+var RoxotDynamicBidAdapterForTestAdapter = function RoxotDynamicBidAdapterForTestAdapter(bidderCode, url) {
   let handlerName = 'dynamic_roxot_' + bidderCode + '_responseHandler';
   $$PREBID_GLOBAL$$[handlerName] = roxotDynamicBidResponseHandler;
 
@@ -119,7 +119,7 @@ for (var bidderIndex in roxotBidderConfigBidders) {
   }
 
   var roxotBidderConfig = roxotBidderConfigBidders[bidderIndex];
-  adaptermanager.registerBidAdapter(new roxotDynamicBidAdapterForTestAdapter(roxotBidderConfig.name, roxotBidderConfig.url), roxotBidderConfig.name);
+  adaptermanager.registerBidAdapter(new RoxotDynamicBidAdapterForTestAdapter(roxotBidderConfig.name, roxotBidderConfig.url), roxotBidderConfig.name);
 }
 
-module.exports = roxotDynamicBidAdapterForTestAdapter;
+module.exports = RoxotDynamicBidAdapterForTestAdapter;
