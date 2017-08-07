@@ -30,7 +30,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
       adUnit.bids.forEach(function (bid) {
         let bidder = bid.bidder;
         if (typeof previousAdUnitPriceFloorSettings[bidder] !== 'undefined') {
-          delete bid.params[previousAdUnitPriceFloorSettings[bidder]];
+          delete bid.params[previousAdUnitPriceFloorSettings[bidder].key];
           delete currentPriceFloorSettings[adUnit.code][bidder];
           if (Object.keys(currentPriceFloorSettings[adUnit.code]).length === 0) {
             delete currentPriceFloorSettings[adUnit.code];
@@ -46,7 +46,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         }
         bid.params[priceFloorKey] = bidderConfig.value;
         currentPriceFloorSettings[adUnit.code] = currentPriceFloorSettings[adUnit.code] || {};
-        currentPriceFloorSettings[adUnit.code][bidder] = priceFloorKey;
+        currentPriceFloorSettings[adUnit.code][bidder] = bidderConfig;
         affectedBidders[bidder] = 1;
       });
       for (let bidder in affectedBidders) {
