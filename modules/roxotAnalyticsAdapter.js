@@ -70,6 +70,10 @@ function isCpmSessionTimeoutExpired() {
   return Date.now() - cpmSessionTimestamp > cpmSessionTimeout;
 }
 
+function getCpmSessionValue() {
+  return parseFloat(localStorage.getItem(buildCpmSessionStorageKey()) ? localStorage.getItem(buildCpmSessionStorageKey()) : 0);
+}
+
 function buildUtmTagData() {
   let utmTagData = {};
   let utmTagsDetected = false;
@@ -281,6 +285,7 @@ roxotAdapter.originEnableAnalytics = roxotAdapter.enableAnalytics;
 roxotAdapter.enableAnalytics = function (config) {
   initOptions = config.options;
   initOptions.utmTagData = buildUtmTagData();
+  initOptions.cpmPerSession = getCpmSessionValue();
   utils.logInfo('Roxot Analytics enabled with config', initOptions);
   roxotAdapter.originEnableAnalytics(config);
 };
