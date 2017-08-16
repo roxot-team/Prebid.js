@@ -281,7 +281,6 @@ roxotAdapter.originEnableAnalytics = roxotAdapter.enableAnalytics;
 roxotAdapter.enableAnalytics = function (config) {
   initOptions = config.options;
   initOptions.utmTagData = buildUtmTagData();
-  initOptions.cpmPerSession = buildCpmPerSession();
   utils.logInfo('Roxot Analytics enabled with config', initOptions);
   roxotAdapter.originEnableAnalytics(config);
 };
