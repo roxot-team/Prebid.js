@@ -25,9 +25,9 @@ let localStoragePrefix = 'roxot_analytics_';
 let utmTags = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content'];
 let utmTimeoutKey = 'utm_timeout';
 let utmTimeout = 60 * 60 * 1000;
-let cpmSessionTimeout = 60 * 60 * 1000;
-let cpmSessionKey = 'cpm_session';
-let cpmSessionTimeoutKey = 'cpm_session_timeout';
+let sessionTimeout = 60 * 60 * 1000;
+let sessionIdStorageKey = 'session_id';
+let sessionTimeoutKey = 'session_timeout';
 
 function getParameterByName(param) {
   let vars = {};
@@ -41,59 +41,34 @@ function getParameterByName(param) {
   return vars[param] ? vars[param] : '';
 }
 
-function buildCpmSessionStorageKey() {
-  return localStoragePrefix.concat(cpmSessionKey);
+function buildSessionIdLocalStorageKey() {
+  return localStoragePrefix.concat(sessionIdStorageKey);
 }
 
-function buildCpmSessionLocalStorageTimeoutKey() {
-  return localStoragePrefix.concat(cpmSessionTimeoutKey);
+function buildSessionIdTimeoutLocalStorageKey() {
+  return localStoragePrefix.concat(sessionTimeoutKey);
 }
 
-function updateCpmSessionValue(cpmAdjustment) {
-  let cpmSessionValue = parseFloat(cpmAdjustment);
-  if (!isCpmSessionTimeoutExpired()) {
-    cpmSessionValue += parseFloat(localStorage.getItem(buildCpmSessionStorageKey()) ? localStorage.getItem(buildCpmSessionStorageKey()) : 0);
+function updateSessionId() {
+  if (isSessionIdTimeoutExpired()) {
+    let newSessionId = utils.generateUUID();
+    localStorage.setItem(buildSessionIdLocalStorageKey(), newSessionId);
   }
-  initOptions.cpmPerSession = cpmSessionValue;
-  localStorage.setItem(buildCpmSessionStorageKey(), cpmSessionValue);
-  updateCpmSessionTimeout();
+  initOptions.sessionId = getSessionId();
+  updateSessionIdTimeout();
 }
 
-function updateCpmSessionTimeout() {
-  localStorage.setItem(buildCpmSessionLocalStorageTimeoutKey(), Date.now());
+function updateSessionIdTimeout() {
+  localStorage.setItem(buildSessionIdTimeoutLocalStorageKey(), Date.now());
 }
 
-function isCpmSessionTimeoutExpired() {
-  let cpmSessionTimestamp = localStorage.getItem(buildCpmSessionLocalStorageTimeoutKey());
-  return Date.now() - cpmSessionTimestamp > cpmSessionTimeout;
+function isSessionIdTimeoutExpired() {
+  let cpmSessionTimestamp = localStorage.getItem(buildSessionIdTimeoutLocalStorageKey());
+  return Date.now() - cpmSessionTimestamp > sessionTimeout;
 }
 
-function getCpmSessionValue() {
-  return parseFloat(localStorage.getItem(buildCpmSessionStorageKey()) ? localStorage.getItem(buildCpmSessionStorageKey()) : 0);
-}
-
-function buildUtmTagData() {
-  let utmTagData = {};
-  let utmTagsDetected = false;
-  utmTags.forEach(function(utmTagKey) {
-    let utmTagValue = getParameterByName(utmTagKey);
-    if (utmTagValue !== '') {
-      utmTagsDetected = true;
-    }
-    utmTagData[utmTagKey] = utmTagValue;
-  });
-  utmTags.forEach(function(utmTagKey) {
-    if (utmTagsDetected) {
-      localStorage.setItem(buildUtmLocalStorageKey(utmTagKey), utmTagData[utmTagKey]);
-      updateUtmTimeout();
-    } else {
-      if (!isUtmTimeoutExpired()) {
-        utmTagData[utmTagKey] = localStorage.getItem(buildUtmLocalStorageKey(utmTagKey)) ? localStorage.getItem(buildUtmLocalStorageKey(utmTagKey)) : '';
-        updateUtmTimeout();
-      }
-    }
-  });
-  return utmTagData;
+function getSessionId() {
+  return localStorage.getItem(buildSessionIdLocalStorageKey()) ? localStorage.getItem(buildSessionIdLocalStorageKey()) : '';
 }
 
 function updateUtmTimeout() {
@@ -204,8 +179,8 @@ let roxotAdapter = Object.assign(adapter({url, analyticsType}),
       }
 
       if (eventType === bidWonConst && auctionStatus === 'not_started') {
+        updateSessionId();
         buildBidWon(eventType, info);
-        updateCpmSessionValue(bidWon.events[0].args.cpm);
         if (isValidBidWon()) {
           send(eventType, bidWon, 'bidWon');
         }
@@ -214,6 +189,7 @@ let roxotAdapter = Object.assign(adapter({url, analyticsType}),
       }
 
       if (eventType === auctionEndConst) {
+        updateSessionId();
         buildEventStack(eventType);
         if (isValidEventStack()) {
           send(eventType, eventStack, 'eventStack');
@@ -231,7 +207,6 @@ roxotAdapter.originEnableAnalytics = roxotAdapter.enableAnalytics;
 roxotAdapter.enableAnalytics = function (config) {
   initOptions = config.options;
   initOptions.utmTagData = this.buildUtmTagData();
-  initOptions.cpmPerSession = getCpmSessionValue();
   utils.logInfo('Roxot Analytics enabled with config', initOptions);
   roxotAdapter.originEnableAnalytics(config);
 };
