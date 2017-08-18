@@ -26,8 +26,6 @@ let utmTags = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_cont
 let utmTimeoutKey = 'utm_timeout';
 let utmTimeout = 60 * 60 * 1000;
 let cpmSessionTimeout = 60 * 60 * 1000;
-let accuracy = 1;
-let sendDataPermission = true;
 let cpmSessionKey = 'cpm_session';
 let cpmSessionTimeoutKey = 'cpm_session_timeout';
 
@@ -131,14 +129,6 @@ function checkAdUnitConfig() {
   return initOptions.adUnits.length > 0;
 }
 
-function checkAccuracyConfig() {
-  if (typeof initOptions.accuracy === 'undefined') {
-    return false;
-  }
-
-  return initOptions.accuracy > 0 && initOptions.accuracy < 1;
-}
-
 function buildBidWon(eventType, args) {
   bidWon.options = initOptions;
   if (checkAdUnitConfig()) {
@@ -227,16 +217,6 @@ function flushBidWon() {
   bidWon.events = [];
 }
 
-function setAccuracy() {
-  if (checkAccuracyConfig()) {
-    accuracy = initOptions.accuracy;
-  }
-}
-
-function setSendDataPermission() {
-  sendDataPermission = Math.random() < accuracy;
-}
-
 let roxotAdapter = Object.assign(adapter({url, analyticsType}),
   {
     track({eventType, args}) {
@@ -253,14 +233,12 @@ let roxotAdapter = Object.assign(adapter({url, analyticsType}),
       if (eventType === auctionInitConst) {
         auctionStatus = 'started';
         flushEventStack();
-        setAccuracy();
-        setSendDataPermission()
       }
 
       if (eventType === bidWonConst && auctionStatus === 'not_started') {
         buildBidWon(eventType, info);
         updateCpmSessionValue(bidWon.events[0].args.cpm);
-        if (isValidBidWon() && sendDataPermission) {
+        if (isValidBidWon()) {
           send(eventType, bidWon, 'bidWon');
         }
         flushBidWon();
@@ -269,7 +247,7 @@ let roxotAdapter = Object.assign(adapter({url, analyticsType}),
 
       if (eventType === auctionEndConst) {
         buildEventStack(eventType);
-        if (isValidEventStack() && sendDataPermission) {
+        if (isValidEventStack()) {
           send(eventType, eventStack, 'eventStack');
         }
         flushEventStack();
