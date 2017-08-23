@@ -3,6 +3,7 @@
 import { flatten, getBidderCodes, shuffle } from './utils';
 import { mapSizes } from './sizeMapping';
 import { processNativeAdUnitParams, nativeAdapters } from './native';
+import { StorageManager, pbjsSyncsKey } from './storagemanager';
 
 var utils = require('./utils.js');
 var CONSTANTS = require('./constants.json');
@@ -17,8 +18,16 @@ let _s2sConfig = {
   adapter: CONSTANTS.S2S.ADAPTER,
   syncEndpoint: CONSTANTS.S2S.SYNC_ENDPOINT
 };
+
+const RANDOM = 'random';
+const FIXED = 'fixed';
+
+const VALID_ORDERS = {};
+VALID_ORDERS[RANDOM] = true;
+VALID_ORDERS[FIXED] = true;
+
 var _analyticsRegistry = {};
-let _bidderSequence = null;
+let _bidderSequence = RANDOM;
 var _priceFloorRegistry = {};
 
 function getBids({bidderCode, requestId, bidderRequestId, adUnits}) {
@@ -71,7 +80,8 @@ exports.callBids = ({adUnits, cbTimeout}) => {
   events.emit(CONSTANTS.EVENTS.AUCTION_INIT, auctionInit);
 
   let bidderCodes = getBidderCodes(adUnits);
-  if (_bidderSequence === CONSTANTS.ORDER.RANDOM) {
+  const syncedBidders = StorageManager.get(pbjsSyncsKey);
+  if (_bidderSequence === RANDOM) {
     bidderCodes = shuffle(bidderCodes);
   }
 
@@ -83,7 +93,7 @@ exports.callBids = ({adUnits, cbTimeout}) => {
 
   if (_s2sConfig.enabled) {
     // these are called on the s2s adapter
-    let adaptersServerSide = _s2sConfig.bidders;
+    let adaptersServerSide = _s2sConfig.bidders.filter(bidder => syncedBidders.includes(bidder));
 
     // don't call these client side
     bidderCodes = bidderCodes.filter((elm) => {
@@ -132,7 +142,9 @@ exports.callBids = ({adUnits, cbTimeout}) => {
 
     let s2sBidRequest = {tid, 'ad_units': adUnitsCopy};
     utils.logMessage(`CALLING S2S HEADER BIDDERS ==== ${adaptersServerSide.join(',')}`);
-    s2sAdapter.callBids(s2sBidRequest);
+    if (s2sBidRequest.ad_units.length) {
+      s2sAdapter.callBids(s2sBidRequest);
+    }
   }
 
   bidderCodes.forEach(bidderCode => {
@@ -257,8 +269,10 @@ exports.enableAnalytics = function (config) {
 };
 
 exports.setBidderSequence = function (order) {
-  if (order === CONSTANTS.ORDER.RANDOM) {
+  if (VALID_ORDERS[order]) {
     _bidderSequence = order;
+  } else {
+    utils.logWarn(`Invalid order: ${order}. Bidder Sequence was not set.`);
   }
 };
 
