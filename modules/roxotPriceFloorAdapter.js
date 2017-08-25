@@ -180,6 +180,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   function _pushToEventHistory(eventStack) {
     let history = _getEventHistory();
     history.push(eventStack);
+    history.slice(-1000);
 
     localStorage.setItem(_buildEventHistoryKey(), JSON.stringify(history));
   }
