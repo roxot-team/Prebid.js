@@ -98,7 +98,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
     return 'roxot_pf_' + name;
   }
 
-  function _send(eventType, data, sendDataType) {
+  function _send(data) {
     let xhr = new XMLHttpRequest();
     xhr.open('POST', url, true);
     xhr.setRequestHeader('Content-Type', 'text/plain');
@@ -110,7 +110,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
       } catch (error) {
         console.error(error);
       }
-      utils.logInfo('Event ' + eventType + ' sent ' + sendDataType + ' to roxot price floor service with result ' + result);
+      utils.logInfo('Event ' + data.eventStackType + ' sent to roxot price floor service with result ' + result);
     };
     xhr.send(JSON.stringify(data));
   }
@@ -141,26 +141,60 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         auctionStartPoints[event.requestId] = event.timestamp;
       } else if (eventType === AUCTION_END_PREBID_EVENT_TYPE) {
         let eventStack = {
+          time: (new Date().getTime()),
           priceFloorSettings: priceFloorSettings[currentRequestId],
           infoString: _extractInfoString(),
           events: _buildAuctionEvents(currentRequestId),
           eventStackType: AUCTION_ROXOT_EVENT_TYPE
         };
-        _send(AUCTION_ROXOT_EVENT_TYPE, eventStack, AUCTION_ROXOT_EVENT_TYPE);
+        _pushAuctionToEventHistory(eventStack);
+        eventStack.eventHistory = _getEventHistory();
+        _send(eventStack);
       } else if (eventType === BID_WON_PREBID_EVENT_TYPE) {
-        let impressionStack = {
+        let eventStack = {
+          time: (new Date().getTime()),
           priceFloorSettings: priceFloorSettings[event.requestId],
           infoString: _extractInfoString(),
           event: _buildImpressionEvent(event.requestId, event.bidderCode, event.adUnitCode, event.cpm, {width: event.width, height: event.height}),
           eventStackType: IMPRESSION_ROXOT_EVENT_TYPE
         };
-        _send(IMPRESSION_ROXOT_EVENT_TYPE, impressionStack, IMPRESSION_ROXOT_EVENT_TYPE);
+        _pushImpressionToEventHistory(eventStack);
+        eventStack.eventHistory = _getEventHistory();
+        _send(eventStack);
       } else if (eventType === BID_REQUEST_PREBID_EVENT_TYPE) {
         _keepBidRequestEvent(event);
       } else if (eventType === BID_RESPONSE_PREBID_EVENT_TYPE) {
         _keepBidResponseEvent(event);
       }
     };
+  }
+
+  function _pushAuctionToEventHistory(eventStack) {
+    _pushToEventHistory(eventStack);
+  }
+
+  function _pushImpressionToEventHistory(eventStack) {
+    _pushToEventHistory(eventStack);
+  }
+
+  function _pushToEventHistory(eventStack) {
+    let history = _getEventHistory();
+    history.push(eventStack);
+
+    localStorage.setItem(_buildEventHistoryKey(), JSON.stringify(history));
+  }
+
+  function _getEventHistory() {
+    let historyString = localStorage.getItem(_buildEventHistoryKey());
+    if (!historyString) {
+      return [];
+    }
+
+    return JSON.parse(historyString);
+  }
+
+  function _buildEventHistoryKey() {
+    return 'roxot_pfh';
   }
 
   function _buildAuctionEvents(currentRequestId) {
