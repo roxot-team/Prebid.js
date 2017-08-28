@@ -25,15 +25,16 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   function _prepareAdUnits(adUnits) {
     adUnits.forEach(function (adUnit) {
       let affectedBidders = {};
-      let config = _getPriceFloorConfig(adUnit.code);
-      let previousAdUnitPriceFloorSettings = currentPriceFloorSettings[adUnit.code] || {};
+      let adUnitCode = adUnit.code.toLowerCase();
+      let config = _getPriceFloorConfig(adUnitCode);
+      let previousAdUnitPriceFloorSettings = currentPriceFloorSettings[adUnitCode] || {};
       adUnit.bids.forEach(function (bid) {
-        let bidder = bid.bidder;
+        let bidder = bid.bidder.toLowerCase();
         if (typeof previousAdUnitPriceFloorSettings[bidder] !== 'undefined') {
           delete bid.params[previousAdUnitPriceFloorSettings[bidder].key];
-          delete currentPriceFloorSettings[adUnit.code][bidder];
-          if (Object.keys(currentPriceFloorSettings[adUnit.code]).length === 0) {
-            delete currentPriceFloorSettings[adUnit.code];
+          delete currentPriceFloorSettings[adUnitCode][bidder];
+          if (Object.keys(currentPriceFloorSettings[adUnitCode]).length === 0) {
+            delete currentPriceFloorSettings[adUnitCode];
           }
         }
         if (!(bidder in config)) {
@@ -45,8 +46,8 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
           return;
         }
         bid.params[priceFloorKey] = bidderConfig.value;
-        currentPriceFloorSettings[adUnit.code] = currentPriceFloorSettings[adUnit.code] || {};
-        currentPriceFloorSettings[adUnit.code][bidder] = bidderConfig;
+        currentPriceFloorSettings[adUnitCode] = currentPriceFloorSettings[adUnitCode] || {};
+        currentPriceFloorSettings[adUnitCode][bidder] = bidderConfig;
         affectedBidders[bidder] = 1;
       });
       for (let bidder in affectedBidders) {
@@ -59,9 +60,9 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         }
       }
       if (Object.keys(config).length === 0) {
-        _removePriceFloorConfig(adUnit.code);
+        _removePriceFloorConfig(adUnitCode);
       } else {
-        _updatePriceFloorConfig(adUnit.code, config);
+        _updatePriceFloorConfig(adUnitCode, config);
       }
     });
   }
@@ -122,9 +123,11 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
 
     if ('config' in body) {
       for (let adUnitCode in body.config) {
+        adUnitCode = adUnitCode.toLowerCase();
         let config = _getPriceFloorConfig(adUnitCode);
         let biddersConfig = body.config[adUnitCode];
         for (let bidder in biddersConfig) {
+          bidder = bidder.toLowerCase();
           config[bidder] = biddersConfig[bidder];
         }
         _updatePriceFloorConfig(adUnitCode, config);
@@ -201,6 +204,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   function _buildAuctionEvents(currentRequestId) {
     let auctions = [];
     for (let adUnitCode in bidRequests[currentRequestId]) {
+      adUnitCode = adUnitCode.toLowerCase();
       let auction = {
         requestId: currentRequestId,
         adUnitCode: adUnitCode,
@@ -217,6 +221,8 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   }
 
   function _buildImpressionEvent(requestId, bidderCode, adUnitCode, cpm, size) {
+    bidderCode = bidderCode.toLowerCase();
+    adUnitCode = adUnitCode.toLowerCase();
     let impression = {
       requestId: requestId,
       impressionInfo: {
@@ -237,22 +243,26 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
 
   function _keepBidRequestEvent(event) {
     event.bids.forEach(bid => {
+      let placementCode = bid.placementCode.toLowerCase();
+      let bidderCode = bid.bidderCode.toLowerCase();
       bidRequests[bid.requestId] = bidRequests[bid.requestId] || {};
-      bidRequests[bid.requestId][bid.placementCode] = bidRequests[bid.requestId][bid.placementCode] || [];
-      bidRequests[bid.requestId][bid.placementCode].push(event.bidderCode);
+      bidRequests[bid.requestId][placementCode] = bidRequests[bid.requestId][placementCode] || [];
+      bidRequests[bid.requestId][placementCode].push(bidderCode);
     });
   }
 
   function _keepBidResponseEvent(event) {
+    let adUnitCode = event.adUnitCode.toLowerCase();
+    let bidderCode = event.bidderCode.toLowerCase();
     bidResponses[event.requestId] = bidResponses[event.requestId] || {};
-    bidResponses[event.requestId][event.adUnitCode] = bidResponses[event.requestId][event.adUnitCode] || [];
-    if (bidResponses[event.requestId][event.adUnitCode][event.bidderCode]) {
-      let existingResponseCpm = bidResponses[event.requestId][event.adUnitCode][event.bidderCode].cpm;
+    bidResponses[event.requestId][adUnitCode] = bidResponses[event.requestId][adUnitCode] || [];
+    if (bidResponses[event.requestId][adUnitCode][bidderCode]) {
+      let existingResponseCpm = bidResponses[event.requestId][adUnitCode][bidderCode].cpm;
       if (event.cpm > existingResponseCpm) {
-        bidResponses[event.requestId][event.adUnitCode][event.bidderCode] = {cpm: event.cpm, size: {width: event.width, height: event.height}};
+        bidResponses[event.requestId][adUnitCode][bidderCode] = {cpm: event.cpm, size: {width: event.width, height: event.height}};
       }
     } else {
-      bidResponses[event.requestId][event.adUnitCode][event.bidderCode] = {cpm: event.cpm, size: {width: event.width, height: event.height}};
+      bidResponses[event.requestId][adUnitCode][bidderCode] = {cpm: event.cpm, size: {width: event.width, height: event.height}};
     }
   }
 
