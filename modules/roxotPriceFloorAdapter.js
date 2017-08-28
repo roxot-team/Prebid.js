@@ -143,11 +143,15 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         priceFloorSettings[event.requestId] = currentPriceFloorSettings;
         auctionStartPoints[event.requestId] = event.timestamp;
       } else if (eventType === AUCTION_END_PREBID_EVENT_TYPE) {
+        let events = _buildAuctionEvents(currentRequestId);
+        if(!events.length) {
+          return;
+        }
         let eventStack = {
           time: (new Date().getTime()),
           priceFloorSettings: priceFloorSettings[currentRequestId],
           infoString: _extractInfoString(),
-          events: _buildAuctionEvents(currentRequestId),
+          events: events,
           eventStackType: AUCTION_ROXOT_EVENT_TYPE
         };
         _pushAuctionToEventHistory(eventStack);
