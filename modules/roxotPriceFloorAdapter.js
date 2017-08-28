@@ -248,7 +248,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   function _keepBidRequestEvent(event) {
     event.bids.forEach(bid => {
       let placementCode = bid.placementCode.toLowerCase();
-      let bidderCode = bid.bidderCode.toLowerCase();
+      let bidderCode = event.bidderCode.toLowerCase();
       bidRequests[bid.requestId] = bidRequests[bid.requestId] || {};
       bidRequests[bid.requestId][placementCode] = bidRequests[bid.requestId][placementCode] || [];
       bidRequests[bid.requestId][placementCode].push(bidderCode);
