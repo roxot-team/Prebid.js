@@ -45,10 +45,12 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         if (priceFloorKey in bid.params) {
           return;
         }
-        bid.params[priceFloorKey] = bidderConfig.value;
-        currentPriceFloorSettings[adUnitCode] = currentPriceFloorSettings[adUnitCode] || {};
-        currentPriceFloorSettings[adUnitCode][bidder] = bidderConfig;
-        affectedBidders[bidder] = 1;
+        if (bidderConfig.value > 0) {
+          bid.params[priceFloorKey] = bidderConfig.value;
+          currentPriceFloorSettings[adUnitCode] = currentPriceFloorSettings[adUnitCode] || {};
+          currentPriceFloorSettings[adUnitCode][bidder] = bidderConfig;
+          affectedBidders[bidder] = 1;
+        }
       });
       for (let bidder in affectedBidders) {
         let ttl = config[bidder].ttl;
@@ -144,7 +146,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         auctionStartPoints[event.requestId] = event.timestamp;
       } else if (eventType === AUCTION_END_PREBID_EVENT_TYPE) {
         let events = _buildAuctionEvents(currentRequestId);
-        if(!events.length) {
+        if (!events.length) {
           return;
         }
         let eventStack = {
