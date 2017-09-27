@@ -47,10 +47,10 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         }
         if (bidderConfig.value > 0) {
           bid.params[priceFloorKey] = bidderConfig.value;
-          currentPriceFloorSettings[adUnitCode] = currentPriceFloorSettings[adUnitCode] || {};
-          currentPriceFloorSettings[adUnitCode][bidder] = bidderConfig;
-          affectedBidders[bidder] = 1;
         }
+        currentPriceFloorSettings[adUnitCode] = currentPriceFloorSettings[adUnitCode] || {};
+        currentPriceFloorSettings[adUnitCode][bidder] = bidderConfig;
+        affectedBidders[bidder] = 1;
       });
       for (let bidder in affectedBidders) {
         let ttl = config[bidder].ttl;
