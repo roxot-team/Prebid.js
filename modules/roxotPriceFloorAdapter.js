@@ -43,7 +43,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         let bidderConfig = config[bidder];
         let priceFloorKey = bidderConfig.key;
         if (bidderConfig.value > 0) {
-          bid.params[priceFloorKey] = bidderConfig.value;
+          bid.params[priceFloorKey] = _preparePriceFloor(bid.bidder, bidderConfig.value);
         }
         currentPriceFloorSettings[adUnitCode] = currentPriceFloorSettings[adUnitCode] || {};
         currentPriceFloorSettings[adUnitCode][bidder] = bidderConfig;
@@ -64,6 +64,22 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         _updatePriceFloorConfig(adUnitCode, config);
       }
     });
+  }
+
+  function _preparePriceFloor(bidderCode, priceFloor)
+  {
+    if (bidderCode && $$PREBID_GLOBAL$$.bidderSettings && $$PREBID_GLOBAL$$.bidderSettings[bidderCode]) {
+      if (typeof $$PREBID_GLOBAL$$.bidderSettings[bidderCode].bidCpmAdjustment === 'function') {
+        try {
+          let adjustmentCoefficient = parseFloat($$PREBID_GLOBAL$$.bidderSettings[bidderCode].bidCpmAdjustment.call(null, 1, {}));
+          return adjustmentCoefficient ? priceFloor / adjustmentCoefficient : priceFloor;
+        } catch (e) {
+          return priceFloor;
+        }
+      }
+    }
+
+    return priceFloor;
   }
 
   function _init() {
