@@ -1,7 +1,7 @@
 import events from 'src/events';
 import adaptermanager from 'src/adaptermanager';
-import CONSTANTS from 'src/constants.json'
 
+const CONSTANTS = require('src/constants.json');
 const utils = require('src/utils');
 const url = window['roxot-price-floor-endpoint'] || '//pf.rxthdr.com';
 
@@ -42,9 +42,6 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
         }
         let bidderConfig = config[bidder];
         let priceFloorKey = bidderConfig.key;
-        if (priceFloorKey in bid.params) {
-          return;
-        }
         if (bidderConfig.value > 0) {
           bid.params[priceFloorKey] = bidderConfig.value;
         }
@@ -71,9 +68,9 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
 
   function _init() {
     events.on(AUCTION_INIT_PREBID_EVENT_TYPE, _catchEvent(AUCTION_INIT_PREBID_EVENT_TYPE));
+    events.on(AUCTION_END_PREBID_EVENT_TYPE, _catchEvent(AUCTION_END_PREBID_EVENT_TYPE));
     events.on(BID_REQUEST_PREBID_EVENT_TYPE, _catchEvent(BID_REQUEST_PREBID_EVENT_TYPE));
     events.on(BID_RESPONSE_PREBID_EVENT_TYPE, _catchEvent(BID_RESPONSE_PREBID_EVENT_TYPE));
-    events.on(AUCTION_END_PREBID_EVENT_TYPE, _catchEvent(AUCTION_END_PREBID_EVENT_TYPE));
     events.on(BID_WON_PREBID_EVENT_TYPE, _catchEvent(BID_WON_PREBID_EVENT_TYPE));
   }
 
@@ -189,9 +186,20 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   function _pushToEventHistory(eventStack) {
     let history = _getEventHistory();
     history.push(eventStack);
-    history.slice(-1000);
+    history = _filterEventHistory(history);
 
     localStorage.setItem(_buildEventHistoryKey(), JSON.stringify(history));
+  }
+
+  function _filterEventHistory(history)
+  {
+    let nowTime = (new Date().getTime());
+    history = history.filter(function(eventStack) {
+      return (nowTime - eventStack.time) <= 3600 * 1000;
+    });
+    history.slice(-1000);
+
+    return history;
   }
 
   function _getEventHistory() {
@@ -261,7 +269,7 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
     let adUnitCode = event.adUnitCode.toLowerCase();
     let bidderCode = event.bidderCode.toLowerCase();
     bidResponses[event.requestId] = bidResponses[event.requestId] || {};
-    bidResponses[event.requestId][adUnitCode] = bidResponses[event.requestId][adUnitCode] || [];
+    bidResponses[event.requestId][adUnitCode] = bidResponses[event.requestId][adUnitCode] || {};
     if (bidResponses[event.requestId][adUnitCode][bidderCode]) {
       let existingResponseCpm = bidResponses[event.requestId][adUnitCode][bidderCode].cpm;
       if (event.cpm > existingResponseCpm) {
@@ -273,11 +281,11 @@ let roxotPriceFloorAdapter = function RoxotPriceFloorAdapter() {
   }
 
   function _flushEvents(timestamp) {
-    for (let i in auctionStartPoints) {
-      if (parseInt(timestamp) - parseInt(auctionStartPoints[i]) >= 6 * 6 * 1000) {
-        delete bidRequests[i];
-        delete bidResponses[i];
-        delete priceFloorSettings[i];
+    for (let requestId in auctionStartPoints) {
+      if (parseInt(timestamp) - parseInt(auctionStartPoints[requestId]) >= 6 * 6 * 1000) {
+        delete bidRequests[requestId];
+        delete bidResponses[requestId];
+        delete priceFloorSettings[requestId];
       }
     }
   }
